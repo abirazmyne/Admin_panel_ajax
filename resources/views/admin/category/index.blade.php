@@ -94,7 +94,7 @@
                     <h3 class="card-title">Add Category Table</h3>
                 </div>
                 <div class="card-body">
-                    <p class="text-success text-center">{{session('message')}}</p>
+{{--                    <p class="text-success text-center">{{session('message')}}</p>--}}
                     <div class="table-responsive export-table">
                         <table id="file-datatable" class="table table-bordered text-nowrap key-buttons border-bottom  w-100">
                             <thead>
@@ -109,22 +109,8 @@
 
 
                             <tbody>
-                            @foreach ($categories as $category)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $category->name }}</td>
-                                    <td>{{ Str::limit($category->description, 20) }}</td>
-                                    <td><img src="{{ asset( $category->image )}}" alt="{{ $category->name }}" width="100"></td>
-                                    <td>
-                                        <a href="{{route('category.edit', ['id' => $category->id])}}" class="btn btn-success">
-                                            <i class="fa fa-edit"></i>
-                                        </a>
-                                        <a href="{{route('category.delete', ['id' => $category->id])}}" onclick="return confirm('Are you sure you want to delete this category?')" class="btn btn-danger">
-                                            <i class="fa fa-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
+
+
                             </tbody>
                         </table>
                     </div>
@@ -143,7 +129,7 @@
 
     <!-- Modal -->
     <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="exampleCategoryLabel" aria-hidden="true">
-        <form action="{{route('category.create')}}" method="POST" enctype="multipart/form-data"  id="addCategoryForm">
+        <form id="addCategoryForm" method="post" enctype="multipart/form-data"  >
             @csrf
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -152,21 +138,19 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="errMessageContainer">
-
-                        </div>
+                        <ul class="alert alert-warning d-none" id="error"></ul>
 
                         <div class="form-group my-3">
                             <label for="name">Category Name</label>
-                            <input type="text" id="name" name="name" class="form-control" required>
+                            <input type="text" name="name" class="form-control" required>
                         </div>
                         <div class="form-group my-3">
                             <label for="description">Category Description</label>
-                            <textarea type="text" id="description" name="description" class="form-control" required> </textarea>
+                            <textarea type="text"  name="description" class="form-control" required> </textarea>
                         </div>
                         <div class="form-group my-3">
                             <label for="price">Category Image</label>
-                            <input type="file" id="image" name="image" class="dropify form-control"  required>
+                            <input type="file" name="image" class="dropify form-control"  required>
                         </div>
 
 
@@ -179,110 +163,156 @@
             </div>
         </form>
     </div>
+
+
 @endsection
 
 @section('script')
-    <script>
-        $(document).ready(function () {
-            $(document).on('click','#saveBTN', function (e) {
-                e.preventDefault();
-                let name = $('#name').val();
-                let description = $('#description').val();
-                let image = $('#image')[0].files[0];
+<script>
+    $(document).ready(function () {
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
 
-                let formData = new FormData();
-                formData.append('name', name);
-                formData.append('description', description);
-                formData.append('image', image);
+        fetchCategory();
+        function fetchCategory() {
+            $.ajax({
+                type: "GET",
+                url: "/fetch-category",
+                datatype: "JSON",
+                success: function (response) {
+                    $('tbody').html('');
+                    $.each(response.categories, function (key, value) {
+                        $('tbody').append('<tr>\
+                            <td>'+value.id+'</td>\
+                        <td>'+value.name+'</td>\
+                        <td>'+value.description+'</td>\
+                        <td>\
+                            <img src="{{ asset('/') }}uploads/employee/'+value.image+'" alt="" height="50px" width="50px">\
+                        </td>\
+                        <td>\
+                            <button class="btn btn-sm btn-success edit_btn" value="'+value.id+'">Edit</button> |\
+                            <button class="btn btn-sm btn-danger delete_btn" value="'+value.id+'">Denger</button> |\
+                        </td>\
+                    </tr>'
+                        );
+                    })
+                }
+            })
+        }
 
-                $.ajax({
-                    url: "{{ route('category.create') }}",
-                    method: 'post',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function (res) {
-                        if (res.status == 'success') {
-                            $('#addCategoryModal').modal('hide');
-                            $('#addCategoryForm')[0].reset();
-                            $('#file-datatable').load(location.href + '#file-datatable');
-                            toastr.success("Category added successfully", "Success");
+        $(document).on('submit', '#addEmployeeForm', function (e) {
+            e.preventDefault();
+            let formData = new FormData($('#addCategoryForm')[0]);
+            // console.log(formData);
+            $.ajax({
+                type: "POST",
+                url: "/category-index",
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    console.log(response.status);
+                    if (response.status == 400) {
+                        $('#error').html('');
+                        $('#error').removeClass('d-none');
+                        $.each(response.errors, function (key, value) {
+                            $('#error').append('<li>' + value + '</li>');
+                        })
+                    } else if (response.status == 200) {
+                        $('#addCategoryForm')[0].reset();
+                        $('#addCategoryModal').modal('hide');
+                        fetchCategory();
+                        Command: toastr["success"](response.message)
+                        toastr.options = {
+                            "closeButton": false,
+                            "debug": false,
+                            "newestOnTop": false,
+                            "progressBar": true,
+                            "positionClass": "toast-top-right",
+                            "preventDuplicates": false,
+                            "onclick": null,
+                            "showDuration": "300",
+                            "hideDuration": "1000",
+                            "timeOut": "3000",
+                            "extendedTimeOut": "1000",
+                            "showEasing": "swing",
+                            "hideEasing": "linear",
+                            "showMethod": "fadeIn",
+                            "hideMethod": "fadeOut"
                         }
-                    },
-                    error: function (err) {
-                        let error = err.responseJSON;
-                        $.each(error.errors, function (index, value) {
-                            $('#errMessageContainer').append('<span class="text-danger">' + value + '</span><br>');
-                        });
                     }
-                });
-            });
+                }
+            })
+        })
+
+        $(document).on('submit', '#updateEmployeeForm', function (e) {
+            e.preventDefault();
+            let formData = new FormData($('#updateCategoryForm')[0]);
+            $('#update_btn').text('Updating Changes');
+            let cat_id = $('#up_cat_id').val();
+            $.ajax({
+                type: "POST",
+                url: "/employee-update/"+cat_id,
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    console.log(response)
+                    if (response.status == 400) {
+                        $('#up_error').html('');
+                        $('#up_error').removeClass('d-none');
+                        $.each(response.errors, function (key, value) {
+                            $('#up_error').append('<li>' + value + '</li>');
+                        })
+                    } else if (response.status == 200) {
+                        $('#updateCategoryForm')[0].reset();
+                        $('#updateCategoryForm').modal('hide');
+                        fetchCategory();
+                        Command: toastr["success"](response.message)
+                        toastr.options = {
+                            "closeButton": false,
+                            "debug": false,
+                            "newestOnTop": false,
+                            "progressBar": true,
+                            "positionClass": "toast-top-right",
+                            "preventDuplicates": false,
+                            "onclick": null,
+                            "showDuration": "300",
+                            "hideDuration": "1000",
+                            "timeOut": "3000",
+                            "extendedTimeOut": "1000",
+                            "showEasing": "swing",
+                            "hideEasing": "linear",
+                            "showMethod": "fadeIn",
+                            "hideMethod": "fadeOut"
+                        }
+                    }
+                }
+            })
+        })
+
+        $(document).on('click','.edit_btn',function (e){
+            e.preventDefault();
+            let cat_id = $(this).val();
+            $('#editCategoryModal').modal('show');
+            $.ajax({
+                type: "get",
+                url: "/edit-employee",
+                data: { id : cat_id },
+                datatype : "JSON",
+                success : function (response){
+                    $('#up_name').val(response.data.name)
+                    $('#up_description').val(response.data.description)
+                    $('#up_image').attr('src',"{{ asset('/') }}uploads/categories/"+response.data.image)
+                    $('#up_cat_id').val(cat_id)
+                }
+            })
+        })
+    })
 
 
-
-            //    Product show
-            $(document).on('click', '.update_product_form', function () {
-                let id = $(this).data('id');
-                let name = $(this).data('name');
-                let price = $(this).data('price');
-                let image = $(this).data('image');
-                // console.log(image);
-
-                $('#up_id').val(id);
-                $('#up_name').val(name);
-                $('#up_price').val(price);
-
-
-
-                $('#current_image').attr("src", "{{ asset('uploads/') }}/" + image);
-                // $('#current_image').attr("src", image);
-                $('#updateModal').modal('show');
-
-            });
-
-
-
-
-
-        {{--$(document).ready(function(){--}}
-
-        {{--    var form = '#addCategoryForm';--}}
-
-        {{--    $(form).on('submit', function(event){--}}
-        {{--        event.preventDefault();--}}
-
-        {{--        // var url = 'http://localhost/trash_proj/ajax_crud/public/add/product';--}}
-        {{--        var url = '{{route('category.create')}}';--}}
-
-
-
-        {{--        $.ajax({--}}
-        {{--            url: url,--}}
-        {{--            type: 'POST',--}}
-        {{--            data: new FormData(this),--}}
-        {{--            dataType: 'JSON',--}}
-        {{--            contentType: false,--}}
-        {{--            cache: false,--}}
-        {{--            processData: false,--}}
-        {{--            success:function(response)--}}
-        {{--            {--}}
-        {{--                $(form).trigger("reset");--}}
-        {{--                $('#addModal').modal('hide');--}}
-        {{--            },--}}
-        {{--            error: function(response) {--}}
-        {{--            }--}}
-        {{--        });--}}
-        {{--    });--}}
-
-        {{--});--}}
-
-
-
-
-
-
-
-    </script>
-
-
+</script>
 @endsection

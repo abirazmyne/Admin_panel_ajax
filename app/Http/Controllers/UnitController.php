@@ -30,15 +30,16 @@ class UnitController extends Controller
 
         Unit::newUnit($request);
 
-        return response()->json(['status' => 'success',]);
-
-//        return back()->with('message', 'Category info create successfully.');
+        return back()->with('message', 'Category info create successfully.');
     }
 
-    public function edit($id)
+    public function editunit($id)
     {
         $unit = Unit::find($id);
-        return view('admin.unit.edit', compact('unit'));
+        return response()->json([
+            'status' => 200,
+            'unit'  => $unit,
+        ]) ;
     }
 
     public function update(Request $request, $id)

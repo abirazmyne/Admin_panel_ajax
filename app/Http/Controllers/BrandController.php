@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use Illuminate\Http\Request;
+use function Carbon\Traits\get;
 
 class BrandController extends Controller
 {
@@ -15,24 +16,17 @@ class BrandController extends Controller
 
     public function create( Request $request)
     {
-        $request->validate([
-            'name' => 'required|unique:products',
-            'description' => 'required',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ], [
-            'name.required' => 'Name is Required',
-            'name.unique' => 'Name Already Exists',
-            'description.required' => 'Description is Required',
-            'image.required' => 'Image is Required',
-            'image.mimes' => 'Uploaded image should be of type jpeg, png, jpg, or gif',
-            'image.max' => 'Uploaded image should not be larger than 2MB',
-        ]);
 
-        Brand::newBrand($request);
-
-        return response()->json(['status' => 'success',]);
-
-//        return back()->with('message', 'Category info create successfully.');
+        $this->brand =  Brand::where('name',$request->name)->get();
+        if($this->brand->count()  < 1)
+        {
+            Brand::newBrand($request);
+            return back()->with('message', 'Category info create successfully.');
+        }
+        else
+            {
+                return back()->with('message', 'Category name already exists');
+            }
     }
 
     public function edit($id)

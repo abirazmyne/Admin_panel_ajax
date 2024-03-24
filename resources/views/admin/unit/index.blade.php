@@ -115,10 +115,14 @@
                                     <td>{{ $unit->name }}</td>
                                     <td>{{ Str::limit($unit->description, 20) }}</td>
                                     <td><img src="{{ asset( $unit->image )}}" alt="{{ $unit->name }}" width="100"></td>
+
                                     <td>
-                                        <a href="{{route('unit.edit', ['id' => $unit->id])}}" class="btn btn-success">
-                                            <i class="fa fa-edit"></i>
-                                        </a>
+                                        <button type="button" class="btn btn-primary btn-sm editbtn" value="{{$unit->id}}">Edit</button>
+                                    </td>
+                                    <td>
+{{--                                        <a href="{{route('unit.edit', ['id' => $unit->id])}}" class="btn btn-success">--}}
+{{--                                            <i class="fa fa-edit"></i>--}}
+{{--                                        </a>--}}
                                         <a href="{{route('unit.delete', ['id' => $unit->id])}}" onclick="return confirm('Are you sure you want to delete this unit?')" class="btn btn-danger">
                                             <i class="fa fa-trash"></i>
                                         </a>
@@ -141,7 +145,7 @@
     <!-- Button trigger modal -->
 
 
-    <!-- Modal -->
+    <!-- Modal Add Unit-->
     <div class="modal fade" id="addUnitModal" tabindex="-1" aria-labelledby="exampleCategoryLabel" aria-hidden="true">
         <form action="{{route('unit.create')}}" method="POST" enctype="multipart/form-data"  id="addUnitForm">
             @csrf
@@ -179,109 +183,73 @@
             </div>
         </form>
     </div>
+    <!-- Modal Add Unit End -->
+
+
+    <!-- Modal Edit Unit-->
+    <div class="modal fade" id="editUnitModal" tabindex="-1" aria-labelledby="exampleCategoryLabel" aria-hidden="true">
+        <form action="{{url('update-unit')}}" method="POST" enctype="multipart/form-data"  id="editUnitForm">
+            @csrf
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleCategoryLabel">Edit a Unit</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <input type="hidden" name="unit_id" id="unit_id">
+
+                    <div class="modal-body">
+                        <div class="errMessageContainer">
+
+                        </div>
+
+                        <div class="form-group my-3">
+                            <label for="name">Unit Type</label>
+                            <input type="text" id="name" name="name" class="form-control" required>
+                        </div>
+                        <div class="form-group my-3">
+                            <label for="description">Unit Description</label>
+                            <textarea type="text" id="description" name="description" class="form-control" required> </textarea>
+                        </div>
+                        <div class="form-group my-3">
+                            <label for="price">Unit Image</label>
+                            <input type="file" id="image" name="image" class="dropify form-control"  required>
+                        </div>
+
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="saveBTNUnit">Update Unit</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <!-- Modal Edit Unit End -->
 @endsection
 
 @section('script')
     <script>
         $(document).ready(function () {
-            $(document).on('click','#saveBTNUnit', function (e) {
-                e.preventDefault();
-                let name = $('#name').val();
-                let description = $('#description').val();
-                let image = $('#image')[0].files[0];
-
-                let formData = new FormData();
-                formData.append('name', name);
-                formData.append('description', description);
-                formData.append('image', image);
+            $(document).on('click', '.editbtn', function () {
+                var unit_id = $(this).val();
+                $('#editUnitModal').modal('show');
 
                 $.ajax({
-                    url: "{{route('unit.create')}}",
-                    method: 'post',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function (res) {
-                        if (res.status == 'success') {
-                            $('#addUnitModal').modal('hide');
-                            $('#addUnitForm')[0].reset();
-                            $('#file-datatable').load(location.href + '#file-datatable');
+                    type: "GET",
+                    url: "/edit-unit/" + unit_id,
+                    success: function (response) {
+                        $('#name').val(response.unit.name);
+                        $('#description').val(response.unit.description);
 
-                            console.log('Category created successfully:', response);
-                        }
-                    },
-                    error: function (err) {
-                        let error = err.responseJSON;
-                        $.each(error.errors, function (index, value) {
-                            $('#errMessageContainer').append('<span class="text-danger">' + value + '</span><br>');
-                        });
+
                     }
                 });
-            });
 
+            })
 
-
-
-            {{--//    Product show--}}
-            {{--$(document).on('click', '.update_product_form', function () {--}}
-            {{--    let id = $(this).data('id');--}}
-            {{--    let name = $(this).data('name');--}}
-            {{--    let price = $(this).data('price');--}}
-            {{--    let image = $(this).data('image');--}}
-            {{--    // console.log(image);--}}
-
-            {{--    $('#up_id').val(id);--}}
-            {{--    $('#up_name').val(name);--}}
-            {{--    $('#up_price').val(price);--}}
-
-
-
-            {{--    $('#current_image').attr("src", "{{ asset('uploads/') }}/" + image);--}}
-            {{--    // $('#current_image').attr("src", image);--}}
-            {{--    $('#updateModal').modal('show');--}}
-
-            {{--});--}}
-
-
-
-
-
-        {{--$(document).ready(function(){--}}
-
-        {{--    var form = '#addCategoryForm';--}}
-
-        {{--    $(form).on('submit', function(event){--}}
-        {{--        event.preventDefault();--}}
-
-        {{--        // var url = 'http://localhost/trash_proj/ajax_crud/public/add/product';--}}
-        {{--        var url = '{{route('category.create')}}';--}}
-
-
-
-        {{--        $.ajax({--}}
-        {{--            url: url,--}}
-        {{--            type: 'POST',--}}
-        {{--            data: new FormData(this),--}}
-        {{--            dataType: 'JSON',--}}
-        {{--            contentType: false,--}}
-        {{--            cache: false,--}}
-        {{--            processData: false,--}}
-        {{--            success:function(response)--}}
-        {{--            {--}}
-        {{--                $(form).trigger("reset");--}}
-        {{--                $('#addModal').modal('hide');--}}
-        {{--            },--}}
-        {{--            error: function(response) {--}}
-        {{--            }--}}
-        {{--        });--}}
-        {{--    });--}}
-
-        {{--});--}}
-
-
-
-
-
+        });
 
 
     </script>
